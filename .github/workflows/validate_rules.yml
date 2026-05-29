@@ -71,7 +71,6 @@ jobs:
           sys.exit(1 if failed else 0)
           PY
 
-      # Convert Sigma to ELK (EQL) using Python (no Sigma plugin issues)
       - name: Convert Sigma to ELK (EQL + JSON)
         run: |
           mkdir -p build/elk
@@ -124,8 +123,7 @@ jobs:
           sys.exit(1 if failed else 0)
           PY
 
-      # Convert Sigma to Wazuh XML using custom Python
-      - name: Convert Sigma to Wazuh XML
+      - name: Convert Sigma to Wazuh XML (Custom)
         run: |
           mkdir -p build/wazuh
           python - <<'PY'
@@ -180,19 +178,30 @@ jobs:
           path: build/
 
       - name: Deploy to ELK Staging
+        env:
+          KIBANA_URL: ${{ secrets.ELASTIC_KIBANA_URL_STAGING }}
+          API_KEY: ${{ secrets.ELASTIC_API_KEY_STAGING }}
         run: |
           for rule in build/elk/*.json; do
             echo "Deploying $rule to ELK staging..."
-            # Replace with actual curl to Elasticsearch API:
-            # curl -X POST "https://elk-staging:9200/..." -H "Content-Type: application/json" -d @"$rule"
+            response=$(curl -s -X POST "${KIBANA_URL}/api/detection_engine/rules" \
+              -H "Content-Type: application/json" \
+              -H "kbn-xsrf: true" \
+              -H "Authorization: ApiKey ${API_KEY}" \
+              -d @"$rule")
+            if echo "$response" | grep -q '"error"'; then
+              echo "❌ ELK staging deployment failed for $rule: $response"
+              exit 1
+            else
+              echo "✅ ELK staging rule deployed: $rule"
+            fi
           done
 
-      - name: Deploy to Wazuh Staging
+      - name: Deploy to Wazuh Staging (Echo - No real deployment)
         run: |
           for rule in build/wazuh/*.xml; do
-            echo "Deploying $rule to Wazuh staging..."
-            # Replace with actual scp/ssh to Wazuh manager:
-            # scp "$rule" wazuh-staging:/var/ossec/etc/rules/
+            echo "[ECHO] Would deploy $rule to Wazuh staging"
+            echo "Command: scp $rule wazuh-manager:/var/ossec/etc/rules/"
           done
 
   deploy-production:
@@ -201,7 +210,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
-     
+      # required_reviewers: [security-lead]   # Uncomment when you set up a reviewer
     steps:
       - name: Download converted rules
         uses: actions/download-artifact@v4
@@ -210,15 +219,28 @@ jobs:
           path: build/
 
       - name: Deploy to ELK Production
+        env:
+          KIBANA_URL: ${{ secrets.ELASTIC_KIBANA_URL_PROD }}
+          API_KEY: ${{ secrets.ELASTIC_API_KEY_PROD }}
         run: |
           for rule in build/elk/*.json; do
             echo "Deploying $rule to ELK production..."
-            # curl -X POST "https://elk-prod:9200/..." -H "Content-Type: application/json" -d @"$rule"
+            response=$(curl -s -X POST "${KIBANA_URL}/api/detection_engine/rules" \
+              -H "Content-Type: application/json" \
+              -H "kbn-xsrf: true" \
+              -H "Authorization: ApiKey ${API_KEY}" \
+              -d @"$rule")
+            if echo "$response" | grep -q '"error"'; then
+              echo "❌ ELK production deployment failed for $rule: $response"
+              exit 1
+            else
+              echo "✅ ELK production rule deployed: $rule"
+            fi
           done
 
-      - name: Deploy to Wazuh Production
+      - name: Deploy to Wazuh Production (Echo - No real deployment)
         run: |
           for rule in build/wazuh/*.xml; do
-            echo "Deploying $rule to Wazuh production..."
-            # scp "$rule" wazuh-prod:/var/ossec/etc/rules/
+            echo "[ECHO] Would deploy $rule to Wazuh production"
+            echo "Command: scp $rule wazuh-manager:/var/ossec/etc/rules/"
           done
