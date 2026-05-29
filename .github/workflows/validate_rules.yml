@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14.4"
+          python-version: "3.11"
 
       - name: Install Sigma CLI
         run: |
@@ -25,4 +25,7 @@ jobs:
 
       - name: Validate Sigma Rules
         run: |
-          find sigma_rules -name "*.yml" -exec sigma check {} \;
+          for file in sigma_rules/*.yml; do
+            echo "Checking $file"
+            sigma check "$file" || exit 1
+          done
