@@ -7,7 +7,6 @@ on:
 
 jobs:
   validate:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +22,10 @@ jobs:
         python-version: '3.10'
 
     # STEP 3: Install Dependencies
-    - name: Install Sigma + tools
+    - name: Install Sigma CLI and Plugins
       run: |
         pip install sigma-cli pyyaml
+        sigma plugin install splunk
 
     # STEP 4: YAML Syntax Validation
     - name: YAML Syntax Check
@@ -107,7 +107,7 @@ jobs:
         print('\nALL RULES PASSED')
         PY
 
-    # STEP 7: Convert Sigma → Splunk
+    # STEP 7: Convert Sigma Rules → Splunk
     - name: Convert Sigma to Splunk
       run: |
         mkdir -p build/splunk
