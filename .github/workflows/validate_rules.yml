@@ -1,4 +1,4 @@
-name: Detection-as-Code Validation & Deployment Pipeline
+name: Detection-as-Code Validation & Deployment Pipeline by Nouman Ali
 
 on:
   pull_request:
