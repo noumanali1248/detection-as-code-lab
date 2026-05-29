@@ -1,0 +1,22 @@
+title: Suspicious PowerShell Network Connection
+id: 7b8a4f2c-1e3d-4a5b-9c7d-8e6f2a1b3c4e
+description: Detects PowerShell making outbound network connections (potential C2 or exfiltration)
+author: Nouman Ali
+date: 2025-05-30
+logsource:
+  product: windows
+  category: network_connection
+detection:
+  selection:
+    Image|endswith: '\powershell.exe'
+    DestinationPort:
+      - 80
+      - 443
+      - 53
+      - 8080
+    Initiated: 'true'
+  condition: selection
+level: medium
+tags:
+  - attack.command_and_control
+  - attack.t1071
